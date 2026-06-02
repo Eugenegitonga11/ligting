@@ -8,63 +8,98 @@
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0a0a; color: #f0f0f0; min-height: 100vh; }
+
   #header { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; border-bottom: 0.5px solid rgba(255,255,255,0.1); }
   #header h1 { font-size: 15px; font-weight: 600; letter-spacing: 0.15em; color: #fff; }
   .badge { font-size: 11px; padding: 3px 10px; border-radius: 20px; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.5); border: 0.5px solid rgba(255,255,255,0.12); }
   .badge.live { background: rgba(0,200,100,0.15); color: #00c864; border-color: rgba(0,200,100,0.3); }
-  #main { display: grid; grid-template-columns: 1fr 280px; min-height: calc(100vh - 49px); }
-  #camera-section { position: relative; background: #000; overflow: hidden; }
-  #videoEl { width: 100%; height: 100%; object-fit: cover; display: none; }
-  #canvas-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: none; }
-  #no-camera { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; min-height: 400px; color: rgba(255,255,255,0.4); gap: 12px; }
+
+  #main { display: grid; grid-template-columns: 1fr; min-height: calc(100vh - 49px); }
+
+  /* Camera */
+  #camera-section { position: relative; background: #000; overflow: hidden; min-height: 40vh; }
+  #videoEl { width: 100%; height: 100%; object-fit: cover; display: none; min-height: 40vh; }
+  #canvas-hidden { display: none; }
+  #no-camera { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 40vh; color: rgba(255,255,255,0.4); gap: 12px; }
   #no-camera i { font-size: 48px; }
   #no-camera p { font-size: 13px; text-align:center; max-width:260px; line-height:1.5; }
-  #start-btn { margin-top: 8px; padding: 10px 24px; border-radius: 8px; border: 0.5px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.08); color: #fff; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: background 0.15s; }
+  #start-btn { margin-top: 8px; padding: 10px 28px; border-radius: 30px; border: 0.5px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.08); color: #fff; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
   #start-btn:hover { background: rgba(255,255,255,0.14); }
-  #readings-overlay { position: absolute; top: 14px; left: 14px; display: none; flex-direction: column; gap: 8px; }
-  .reading-pill { padding: 6px 14px; border-radius: 20px; background: rgba(0,0,0,0.65); color: #fff; font-size: 14px; font-weight: 600; letter-spacing: 0.04em; backdrop-filter: blur(6px); border: 0.5px solid rgba(255,255,255,0.1); }
-  .reading-pill span.label { font-size: 10px; font-weight:400; opacity: 0.55; margin-right: 6px; letter-spacing: 0.08em; text-transform: uppercase; }
-  #crosshair { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 60px; height: 60px; pointer-events: none; display: none; }
-  #crosshair::before, #crosshair::after { content: ''; position: absolute; background: rgba(255,255,255,0.55); }
-  #crosshair::before { width: 1px; height: 100%; left: 50%; }
-  #crosshair::after { height: 1px; width: 100%; top: 50%; }
-  #histogram-container { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.55); padding: 8px 14px 8px; display: none; }
-  #histogram-container p { font-size: 10px; color: rgba(255,255,255,0.35); margin-bottom: 4px; letter-spacing: 0.06em; text-transform: uppercase; }
-  #histCanvas { width: 100%; height: 52px; display: block; }
-  #sidebar { border-left: 0.5px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; background: #111; }
-  #lens-selector { display: flex; gap: 6px; padding: 10px 14px; border-bottom: 0.5px solid rgba(255,255,255,0.08); }
-  .lens-btn { flex: 1; padding: 6px 0; font-size: 12px; border: 0.5px solid rgba(255,255,255,0.12); border-radius: 8px; background: transparent; color: rgba(255,255,255,0.45); cursor: pointer; transition: all 0.15s; }
-  .lens-btn.active { background: rgba(255,255,255,0.1); color: #fff; border-color: rgba(255,255,255,0.25); }
-  .sidebar-section { padding: 14px; border-bottom: 0.5px solid rgba(255,255,255,0.08); }
-  .sidebar-section h3 { font-size: 10px; font-weight: 500; color: rgba(255,255,255,0.35); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 12px; }
-  .metric-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
-  .metric-label { font-size: 12px; color: rgba(255,255,255,0.45); }
-  .metric-value { font-size: 16px; font-weight: 500; color: #fff; }
-  .metric-unit { font-size: 11px; color: rgba(255,255,255,0.4); margin-left: 2px; }
-  #temp-bar-wrap { margin-top: 10px; margin-bottom: 12px; }
-  #temp-bar-track { height: 6px; border-radius: 3px; background: linear-gradient(to right, #FF6B00, #FFD580, #FFFFFF, #B0D8FF, #6BB5FF); position: relative; }
-  #temp-bar-thumb { position: absolute; top: -5px; width: 16px; height: 16px; border-radius: 50%; border: 2px solid #fff; background: #222; transform: translateX(-50%); transition: left 0.25s ease; box-shadow: 0 0 0 1px rgba(255,255,255,0.2); }
-  .light-source-tags { display: flex; flex-wrap: wrap; gap: 5px; }
-  .ls-tag { padding: 3px 9px; border-radius: 12px; font-size: 11px; border: 0.5px solid rgba(255,255,255,0.12); color: rgba(255,255,255,0.4); transition: all 0.2s; }
+
+  /* Crosshair */
+  #crosshair { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 64px; height: 64px; pointer-events: none; display: none; }
+  #crosshair::before, #crosshair::after { content:''; position:absolute; background: rgba(255,255,255,0.6); }
+  #crosshair::before { width:1px; height:100%; left:50%; }
+  #crosshair::after { height:1px; width:100%; top:50%; }
+
+  /* Bottom panel — mimics CineTemp layout */
+  #bottom-panel { background: rgba(30,30,30,0.97); border-top: 0.5px solid rgba(255,255,255,0.08); }
+
+  /* Tab bar */
+  #tabs { display: flex; justify-content: center; gap: 40px; padding: 14px 0 10px; border-bottom: 0.5px solid rgba(255,255,255,0.08); }
+  .tab-btn { background: none; border: none; color: rgba(255,255,255,0.35); font-size: 22px; cursor: pointer; padding: 4px; border-radius: 6px; }
+  .tab-btn.active { color: #fff; }
+
+  /* Big CCT display */
+  #cct-display { text-align: center; padding: 20px 20px 10px; }
+  #cct-big { font-size: 64px; font-weight: 300; color: #fff; letter-spacing: -2px; line-height: 1; }
+  #cct-big span.unit { font-size: 36px; font-weight: 300; }
+  #gm-display { font-size: 20px; color: rgba(255,255,255,0.5); margin-top: 4px; font-weight: 300; }
+
+  /* ND + meta row */
+  #meta-row { display: flex; align-items: center; justify-content: center; gap: 0; padding: 10px 20px 14px; border-bottom: 0.5px solid rgba(255,255,255,0.08); flex-wrap: wrap; }
+  .meta-item { text-align: center; padding: 0 16px; border-right: 0.5px solid rgba(255,255,255,0.12); }
+  .meta-item:last-child { border-right: none; }
+  .meta-item .meta-label { font-size: 10px; color: rgba(255,255,255,0.35); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 2px; }
+  .meta-item .meta-val { font-size: 15px; font-weight: 500; color: #fff; }
+  .meta-item .meta-val.nd { font-weight: 600; }
+
+  /* CCT slider bar */
+  #cct-bar-section { padding: 14px 20px 8px; }
+  #cct-bar-labels { display: flex; justify-content: space-between; font-size: 11px; color: rgba(255,255,255,0.3); margin-bottom: 6px; }
+  #cct-bar-track { height: 8px; border-radius: 4px; background: linear-gradient(to right, #FF6B00 0%, #FFD580 25%, #FFFFFF 50%, #B8D8FF 75%, #6BB5FF 100%); position: relative; margin-bottom: 10px; }
+  #cct-bar-thumb { position: absolute; top: -5px; width: 18px; height: 18px; border-radius: 50%; border: 2.5px solid #fff; background: #1e1e1e; transform: translateX(-50%); transition: left 0.2s ease; }
+
+  /* GM slider */
+  #gm-bar-section { padding: 0 20px 14px; }
+  #gm-bar-labels { display: flex; justify-content: space-between; font-size: 11px; color: rgba(255,255,255,0.3); margin-bottom: 6px; }
+  #gm-bar-track { height: 8px; border-radius: 4px; background: linear-gradient(to right, #00c864, #fff, #cc44ff); position: relative; }
+  #gm-bar-thumb { position: absolute; top: -5px; width: 18px; height: 18px; border-radius: 50%; border: 2.5px solid #fff; background: #1e1e1e; transform: translateX(-50%); transition: left 0.2s ease; }
+
+  /* Light source tags */
+  #ls-section { padding: 4px 20px 14px; }
+  .light-source-tags { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+  .ls-tag { padding: 4px 11px; border-radius: 14px; font-size: 11px; border: 0.5px solid rgba(255,255,255,0.12); color: rgba(255,255,255,0.35); }
   .ls-tag.active { background: rgba(255,180,0,0.15); color: #FFB400; border-color: rgba(255,180,0,0.3); }
-  #save-btn { width: 100%; padding: 10px; border-radius: 8px; border: 0.5px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.06); color: #fff; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 7px; margin-top: 12px; transition: background 0.15s; }
-  #save-btn:hover { background: rgba(255,255,255,0.1); }
-  #shots-list { flex: 1; overflow-y: auto; padding: 8px 14px; }
-  .shot-item { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 0.5px solid rgba(255,255,255,0.06); }
-  .shot-swatch { width: 32px; height: 32px; border-radius: 6px; flex-shrink: 0; border: 0.5px solid rgba(255,255,255,0.1); }
+
+  /* Histogram */
+  #histogram-section { padding: 0 20px 14px; }
+  #histogram-section p { font-size: 10px; color: rgba(255,255,255,0.3); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 5px; }
+  #histCanvas { width: 100%; height: 48px; display: block; border-radius: 4px; overflow: hidden; }
+
+  /* Lens + save row */
+  #action-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 20px 16px; gap: 12px; }
+  #lens-selector { display: flex; gap: 6px; }
+  .lens-btn { padding: 7px 18px; font-size: 12px; border: 0.5px solid rgba(255,255,255,0.15); border-radius: 20px; background: transparent; color: rgba(255,255,255,0.45); cursor: pointer; }
+  .lens-btn.active { background: rgba(255,255,255,0.12); color: #fff; border-color: rgba(255,255,255,0.3); }
+  #capture-btn { width: 56px; height: 56px; border-radius: 50%; border: 3px solid #fff; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  #capture-btn::after { content:''; width:44px; height:44px; border-radius:50%; background:#fff; display:block; transition: transform 0.1s; }
+  #capture-btn:active::after { transform: scale(0.88); }
+
+  /* Shot history tab */
+  #history-panel { display: none; padding: 14px 20px; }
+  #history-panel h3 { font-size: 11px; color: rgba(255,255,255,0.3); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 12px; }
+  .shot-item { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 0.5px solid rgba(255,255,255,0.06); }
+  .shot-swatch { width: 36px; height: 36px; border-radius: 8px; flex-shrink: 0; border: 0.5px solid rgba(255,255,255,0.1); }
   .shot-info { flex: 1; min-width: 0; }
-  .shot-cct { font-size: 13px; font-weight: 500; color: #fff; }
-  .shot-meta { font-size: 11px; color: rgba(255,255,255,0.35); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .shot-del { font-size: 14px; color: rgba(255,255,255,0.25); cursor: pointer; padding: 4px; border-radius: 4px; transition: color 0.15s; }
-  .shot-del:hover { color: rgba(255,80,80,0.8); }
-  #empty-shots { text-align: center; padding: 28px 0; color: rgba(255,255,255,0.25); font-size: 12px; }
-  /* calibration note */
-  #cal-note { font-size: 10px; color: rgba(255,255,255,0.25); padding: 6px 14px 10px; line-height: 1.5; }
-  @media (max-width: 680px) {
-    #main { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
-    #sidebar { border-left: none; border-top: 0.5px solid rgba(255,255,255,0.08); }
-    #camera-section { min-height: 280px; }
-  }
+  .shot-cct { font-size: 15px; font-weight: 500; color: #fff; }
+  .shot-meta { font-size: 11px; color: rgba(255,255,255,0.35); }
+  .shot-del { color: rgba(255,255,255,0.2); cursor: pointer; padding: 4px; font-size: 16px; }
+  .shot-del:hover { color: rgba(255,80,80,0.7); }
+  #empty-shots { text-align:center; padding:28px 0; color:rgba(255,255,255,0.2); font-size:12px; }
+
+  /* Cal note */
+  #cal-note { font-size: 10px; color: rgba(255,255,255,0.2); text-align:center; padding: 0 20px 10px; line-height:1.5; }
 </style>
 </head>
 <body>
@@ -87,143 +122,159 @@
       </button>
     </div>
     <video id="videoEl" autoplay playsinline muted></video>
-    <canvas id="canvas-overlay"></canvas>
+    <canvas id="canvas-hidden"></canvas>
     <div id="crosshair"></div>
-    <div id="readings-overlay">
-      <div class="reading-pill"><span class="label">CCT</span><span id="cct-val">—</span> K</div>
-      <div class="reading-pill"><span class="label">ND</span><span id="nd-val">—</span></div>
-      <div class="reading-pill"><span class="label">EV</span><span id="ev-val">—</span></div>
-      <div class="reading-pill"><span class="label">G/M</span><span id="gm-val">—</span></div>
-    </div>
-    <div id="histogram-container">
-      <p>Luminance histogram</p>
-      <canvas id="histCanvas" width="800" height="52"></canvas>
-    </div>
   </div>
 
-  <div id="sidebar">
-    <div id="lens-selector">
-      <button class="lens-btn active" onclick="setLens(this,'environment')">Main</button>
-      <button class="lens-btn" onclick="setLens(this,'user')">Front</button>
+  <div id="bottom-panel">
+    <!-- Tab bar -->
+    <div id="tabs">
+      <button class="tab-btn active" onclick="switchTab('live',this)" title="Live"><i class="ti ti-circle"></i></button>
+      <button class="tab-btn" onclick="switchTab('history',this)" title="History"><i class="ti ti-clock"></i></button>
+      <button class="tab-btn" onclick="switchTab('histogram',this)" title="Histogram"><i class="ti ti-chart-histogram"></i></button>
     </div>
 
-    <div class="sidebar-section">
-      <h3>Color temperature</h3>
-      <div class="metric-row">
-        <span class="metric-label">CCT</span>
-        <span><span class="metric-value" id="sb-cct">—</span><span class="metric-unit">K</span></span>
+    <!-- Live tab -->
+    <div id="live-panel">
+      <!-- Big CCT number -->
+      <div id="cct-display">
+        <div id="cct-big"><span id="cct-val">—</span><span class="unit"> K</span></div>
+        <div id="gm-display" id="gm-big">—</div>
       </div>
-      <div class="metric-row">
-        <span class="metric-label">G/M shift</span>
-        <span class="metric-value" id="sb-gm">—</span>
+
+      <!-- ND + meta row -->
+      <div id="meta-row">
+        <div class="meta-item">
+          <div class="meta-label">ND</div>
+          <div class="meta-val nd" id="nd-val">—</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Stops</div>
+          <div class="meta-val" id="stops-val">—</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">EV</div>
+          <div class="meta-val" id="ev-val">—</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Lum</div>
+          <div class="meta-val" id="lum-val">—</div>
+        </div>
       </div>
-      <div id="temp-bar-wrap">
-        <div id="temp-bar-track"><div id="temp-bar-thumb"></div></div>
+
+      <!-- CCT bar -->
+      <div id="cct-bar-section">
+        <div id="cct-bar-labels">
+          <span>2,000</span><span>3,000</span><span>4,000</span><span>5,000</span><span>6,000</span><span>7,000</span>
+        </div>
+        <div id="cct-bar-track"><div id="cct-bar-thumb"></div></div>
       </div>
-      <div class="light-source-tags" id="ls-tags">
-        <span class="ls-tag" data-min="1800" data-max="2200">Candle</span>
-        <span class="ls-tag" data-min="2700" data-max="3200">Tungsten</span>
-        <span class="ls-tag" data-min="3200" data-max="4000">Halogen</span>
-        <span class="ls-tag" data-min="4000" data-max="5000">Fluorescent</span>
-        <span class="ls-tag" data-min="5000" data-max="5500">Flash</span>
-        <span class="ls-tag" data-min="5500" data-max="6500">Daylight</span>
-        <span class="ls-tag" data-min="6500" data-max="8000">Overcast</span>
+
+      <!-- GM bar -->
+      <div id="gm-bar-section">
+        <div id="gm-bar-labels">
+          <span>G+5</span><span>G+2.5</span><span>0</span><span>M-2.5</span><span>M-5</span>
+        </div>
+        <div id="gm-bar-track"><div id="gm-bar-thumb" style="left:50%"></div></div>
       </div>
-      <div id="cal-note">* Browser cameras apply auto white-balance. Readings are approximate — use a grey card for best accuracy.</div>
+
+      <!-- Light source tags -->
+      <div id="ls-section">
+        <div class="light-source-tags">
+          <span class="ls-tag" data-min="1800" data-max="2200">Candle</span>
+          <span class="ls-tag" data-min="2700" data-max="3200">Tungsten</span>
+          <span class="ls-tag" data-min="3200" data-max="4000">Halogen</span>
+          <span class="ls-tag" data-min="4000" data-max="5000">Fluorescent</span>
+          <span class="ls-tag" data-min="5000" data-max="5500">Flash</span>
+          <span class="ls-tag" data-min="5500" data-max="6500">Daylight</span>
+          <span class="ls-tag" data-min="6500" data-max="8000">Overcast</span>
+        </div>
+      </div>
+
+      <!-- Cal note -->
+      <div id="cal-note">Readings are approximate. Browser cameras apply auto white-balance — point at neutral grey for best accuracy.</div>
+
+      <!-- Lens + Capture -->
+      <div id="action-row">
+        <div id="lens-selector">
+          <button class="lens-btn active" onclick="setLens(this,'environment')">Main</button>
+          <button class="lens-btn" onclick="setLens(this,'user')">Front</button>
+        </div>
+        <button id="capture-btn" onclick="saveShot()" title="Save reading"></button>
+        <div style="width:88px;text-align:right;font-size:13px;color:rgba(255,255,255,0.4);" id="zoom-label">1×</div>
+      </div>
     </div>
 
-    <div class="sidebar-section">
-      <h3>Exposure</h3>
-      <div class="metric-row">
-        <span class="metric-label">Luminance</span>
-        <span><span class="metric-value" id="sb-lum">—</span><span class="metric-unit">%</span></span>
-      </div>
-      <div class="metric-row">
-        <span class="metric-label">ND stop</span>
-        <span class="metric-value" id="sb-nd">—</span>
-      </div>
-      <div class="metric-row">
-        <span class="metric-label">EV</span>
-        <span class="metric-value" id="sb-ev">—</span>
-      </div>
-      <button id="save-btn" onclick="saveShot()">
-        <i class="ti ti-bookmark"></i> Save reading
-      </button>
-    </div>
-
-    <div class="sidebar-section" style="border-bottom:none;">
+    <!-- History tab -->
+    <div id="history-panel">
       <h3>Shot library (<span id="shot-count">0</span>)</h3>
+      <div id="shots-list"><div id="empty-shots">No saved readings yet</div></div>
     </div>
-    <div id="shots-list">
-      <div id="empty-shots">No saved readings yet</div>
+
+    <!-- Histogram tab -->
+    <div id="histogram-panel" style="display:none; padding:14px 20px;">
+      <div id="histogram-section">
+        <p>Luminance histogram</p>
+        <canvas id="histCanvas" width="800" height="80"></canvas>
+      </div>
     </div>
   </div>
 </div>
 
 <script>
-  let stream = null;
-  let animFrame = null;
+  let stream = null, animFrame = null;
   let currentFacingMode = 'environment';
   let shots = [];
-  try { shots = JSON.parse(localStorage.getItem('cinetemp_shots') || '[]'); } catch(e){}
-  let lastCCT = 5500, lastLum = 50, lastGM = 0;
+  try { shots = JSON.parse(localStorage.getItem('cinetemp_shots2') || '[]'); } catch(e){}
+  let lastCCT = 5500, lastLum = 50, lastGM = 0, lastNDStop = 0;
   let frameCount = 0, lastFpsTime = Date.now();
-
-  // Smoothing buffers
-  let cctBuffer = [], bufSize = 8;
+  let cctBuffer = [], lumBuffer = [], gmBuffer = [];
+  const SMOOTH = 10;
 
   const video = document.getElementById('videoEl');
+  const hiddenCanvas = document.getElementById('canvas-hidden');
+  const hctx2d = hiddenCanvas.getContext('2d', { willReadFrequently: true });
   const histCanvas = document.getElementById('histCanvas');
   const hctx = histCanvas.getContext('2d');
-  const overlay = document.getElementById('canvas-overlay');
-  const octx = overlay.getContext('2d', { willReadFrequently: true });
+
+  function switchTab(name, btn) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('live-panel').style.display = name === 'live' ? 'block' : 'none';
+    document.getElementById('history-panel').style.display = name === 'history' ? 'block' : 'none';
+    document.getElementById('histogram-panel').style.display = name === 'histogram' ? 'block' : 'none';
+  }
 
   async function startCamera() {
     try {
-      const constraints = {
-        video: {
-          facingMode: currentFacingMode,
-          width: { ideal: 1920 },
-          height: { ideal: 1080 },
-          // Disable AWB if browser supports it
-          whiteBalanceMode: 'manual',
-          colorTemperature: 5500
-        }
-      };
-      try {
-        stream = await navigator.mediaDevices.getUserMedia(constraints);
-      } catch(e) {
-        // Fallback without advanced constraints
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: currentFacingMode, width: { ideal: 1920 }, height: { ideal: 1080 } }
-        });
-      }
-      // Try to lock white balance via ImageCapture API
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: currentFacingMode, width: { ideal: 1920 }, height: { ideal: 1080 } }
+      });
+      // Try to disable AWB
       try {
         const track = stream.getVideoTracks()[0];
-        const caps = track.getCapabilities();
+        const caps = track.getCapabilities ? track.getCapabilities() : {};
         if (caps.whiteBalanceMode && caps.whiteBalanceMode.includes('manual')) {
           await track.applyConstraints({ advanced: [{ whiteBalanceMode: 'manual', colorTemperature: 5500 }] });
         }
-      } catch(e) { /* not supported, ignore */ }
+      } catch(e) {}
 
       video.srcObject = stream;
       video.style.display = 'block';
-      overlay.style.display = 'block';
       document.getElementById('no-camera').style.display = 'none';
-      document.getElementById('readings-overlay').style.display = 'flex';
-      document.getElementById('histogram-container').style.display = 'block';
       document.getElementById('crosshair').style.display = 'block';
       document.getElementById('status-badge').textContent = 'Live';
       document.getElementById('status-badge').classList.add('live');
+
       video.addEventListener('loadedmetadata', () => {
-        overlay.width = video.videoWidth;
-        overlay.height = video.videoHeight;
+        hiddenCanvas.width = video.videoWidth;
+        hiddenCanvas.height = video.videoHeight;
+        histCanvas.width = video.videoWidth;
         analyzeLoop();
       });
     } catch(e) {
       document.getElementById('no-camera').querySelector('p').textContent =
-        'Camera access denied. Please allow camera permission and reload.';
+        'Camera access denied. Allow camera permission and reload.';
     }
   }
 
@@ -231,80 +282,87 @@
     document.querySelectorAll('.lens-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     currentFacingMode = mode;
-    if (stream) { stopCamera(); startCamera(); }
-  }
-
-  function stopCamera() {
-    if (stream) stream.getTracks().forEach(t => t.stop());
-    if (animFrame) cancelAnimationFrame(animFrame);
+    if (stream) { if(animFrame) cancelAnimationFrame(animFrame); stream.getTracks().forEach(t=>t.stop()); startCamera(); }
   }
 
   function analyzeLoop() {
     if (!video.videoWidth) { animFrame = requestAnimationFrame(analyzeLoop); return; }
-    octx.drawImage(video, 0, 0, overlay.width, overlay.height);
+    hctx2d.drawImage(video, 0, 0, hiddenCanvas.width, hiddenCanvas.height);
 
-    // Sample center 30% of frame (avoids dark edges skewing results)
-    const sw = Math.floor(overlay.width * 0.3);
-    const sh = Math.floor(overlay.height * 0.3);
-    const x0 = Math.floor((overlay.width - sw) / 2);
-    const y0 = Math.floor((overlay.height - sh) / 2);
-    const imgData = octx.getImageData(x0, y0, sw, sh);
-    const d = imgData.data;
+    // Sample center 25% of frame
+    const sw = Math.floor(hiddenCanvas.width * 0.25);
+    const sh = Math.floor(hiddenCanvas.height * 0.25);
+    const x0 = Math.floor((hiddenCanvas.width - sw) / 2);
+    const y0 = Math.floor((hiddenCanvas.height - sh) / 2);
+    const d = hctx2d.getImageData(x0, y0, sw, sh).data;
 
-    let rSum = 0, gSum = 0, bSum = 0, n = 0;
-    const hist = new Array(256).fill(0);
-
-    // Skip very dark and very bright pixels (over/under exposed)
-    for (let i = 0; i < d.length; i += 4) {
+    let rS=0, gS=0, bS=0, n=0;
+    for (let i=0; i<d.length; i+=4) {
       const lv = 0.299*d[i] + 0.587*d[i+1] + 0.114*d[i+2];
-      if (lv < 20 || lv > 235) continue; // skip clipped pixels
-      rSum += d[i]; gSum += d[i+1]; bSum += d[i+2]; n++;
-      hist[Math.round(lv)]++;
+      if (lv < 15 || lv > 240) continue;
+      rS+=d[i]; gS+=d[i+1]; bS+=d[i+2]; n++;
     }
-    if (n === 0) { animFrame = requestAnimationFrame(analyzeLoop); return; }
+    if (n < 100) { animFrame = requestAnimationFrame(analyzeLoop); return; }
 
-    const rAvg = rSum / n, gAvg = gSum / n, bAvg = bSum / n;
-
-    // Full frame histogram for display
-    const fullData = octx.getImageData(0, 0, overlay.width, overlay.height).data;
-    const fullHist = new Array(256).fill(0);
-    for (let i = 0; i < fullData.length; i += 4) {
-      fullHist[Math.round(0.299*fullData[i] + 0.587*fullData[i+1] + 0.114*fullData[i+2])]++;
-    }
-
-    const cct = rgbToCCTImproved(rAvg, gAvg, bAvg);
-    const lumRaw = (rAvg*0.299 + gAvg*0.587 + bAvg*0.114);
+    const r=rS/n, g=gS/n, b=bS/n;
+    const rawCCT = rgbToCCT(r, g, b);
+    const lumRaw = r*0.299 + g*0.587 + b*0.114;
     const lum = Math.round(lumRaw / 255 * 100);
-    const gmShift = Math.round((gAvg - (rAvg + bAvg) / 2) * 0.12);
-    const ev = parseFloat((Math.log2(lumRaw / 18 + 0.01)).toFixed(1));
-    const ndStop = lum > 5 ? parseFloat((Math.log2(lum / 5)).toFixed(1)) : 0;
 
-    // Smooth CCT over buffer
-    cctBuffer.push(cct);
-    if (cctBuffer.length > bufSize) cctBuffer.shift();
-    const smoothCCT = Math.round(cctBuffer.reduce((a,b) => a+b, 0) / cctBuffer.length / 50) * 50;
+    // G/M shift: compare green channel to expected neutral
+    // Positive = green cast, negative = magenta cast
+    const neutral = (r + b) / 2;
+    const gmRaw = parseFloat(((g - neutral) / neutral * 5).toFixed(1));
 
-    lastCCT = smoothCCT; lastLum = lum; lastGM = gmShift;
+    // Smooth
+    cctBuffer.push(rawCCT); if(cctBuffer.length>SMOOTH) cctBuffer.shift();
+    lumBuffer.push(lum); if(lumBuffer.length>SMOOTH) lumBuffer.shift();
+    gmBuffer.push(gmRaw); if(gmBuffer.length>SMOOTH) gmBuffer.shift();
 
-    document.getElementById('cct-val').textContent = smoothCCT;
-    document.getElementById('nd-val').textContent = ndStop > 0 ? 'ND' + Math.pow(2, Math.ceil(ndStop)) : 'Clear';
+    const smoothCCT = Math.round(avg(cctBuffer) / 50) * 50;
+    const smoothLum = Math.round(avg(lumBuffer));
+    const smoothGM = parseFloat(avg(gmBuffer).toFixed(1));
+
+    // ND calculation based on luminance
+    // Target exposure = 18% grey = ~46 out of 255 = lum 18%
+    // ND stops = log2(current_lum / 18)
+    const ndStops = smoothLum > 1 ? Math.max(0, Math.log2(smoothLum / 18)) : 0;
+    const ndDensity = parseFloat((ndStops * 0.3).toFixed(1)); // density = stops * log10(2) ≈ stops * 0.3
+    const ndNumber = Math.pow(2, Math.round(ndStops)); // ND2, ND4, ND8...
+    const ev = parseFloat((Math.log2(lumRaw / 18 + 0.001)).toFixed(1));
+
+    lastCCT = smoothCCT; lastLum = smoothLum; lastGM = smoothGM; lastNDStop = parseFloat(ndStops.toFixed(1));
+
+    // Update UI
+    document.getElementById('cct-val').textContent = smoothCCT.toLocaleString();
+    document.getElementById('gm-display').textContent = smoothGM >= 0 ? '+' + smoothGM.toFixed(1) : smoothGM.toFixed(1);
+
+    // ND display matching real CineTemp: "ND 2 (0.6)"
+    if (ndStops < 0.3) {
+      document.getElementById('nd-val').textContent = 'Clear';
+      document.getElementById('stops-val').textContent = '—';
+    } else {
+      document.getElementById('nd-val').textContent = 'ND ' + ndNumber + ' (' + ndDensity + ')';
+      document.getElementById('stops-val').textContent = ndStops.toFixed(1);
+    }
     document.getElementById('ev-val').textContent = ev;
-    document.getElementById('gm-val').textContent = gmShift > 0 ? '+' + gmShift + ' G' : gmShift < 0 ? Math.abs(gmShift) + ' M' : '0';
-    document.getElementById('sb-cct').textContent = smoothCCT;
-    document.getElementById('sb-lum').textContent = lum;
-    document.getElementById('sb-nd').textContent = ndStop > 0 ? ndStop.toFixed(1) + ' stop' : 'Clear';
-    document.getElementById('sb-ev').textContent = ev;
-    document.getElementById('sb-gm').textContent = gmShift > 0 ? '+' + gmShift + ' G' : gmShift < 0 ? Math.abs(gmShift) + ' M' : '0';
+    document.getElementById('lum-val').textContent = smoothLum + '%';
 
-    const pct = Math.min(Math.max((smoothCCT - 1800) / (8000 - 1800), 0), 1);
-    document.getElementById('temp-bar-thumb').style.left = (pct * 100) + '%';
+    // CCT bar (2000–7000K range to match real app)
+    const pct = Math.min(Math.max((smoothCCT - 2000) / (7000 - 2000), 0), 1);
+    document.getElementById('cct-bar-thumb').style.left = (pct * 100) + '%';
+
+    // GM bar (range -5 to +5)
+    const gmPct = Math.min(Math.max((smoothGM + 5) / 10, 0), 1);
+    document.getElementById('gm-bar-thumb').style.left = (gmPct * 100) + '%';
 
     document.querySelectorAll('.ls-tag').forEach(tag => {
       const min = parseInt(tag.dataset.min), max = parseInt(tag.dataset.max);
       tag.classList.toggle('active', smoothCCT >= min && smoothCCT <= max);
     });
 
-    drawHistogram(fullHist);
+    // Histogram (full frame)
+    drawHistogram();
 
     frameCount++;
     const now = Date.now();
@@ -316,109 +374,99 @@
     animFrame = requestAnimationFrame(analyzeLoop);
   }
 
-  /**
-   * Improved CCT from RGB using CIE XYZ conversion then McCamy's formula.
-   * More accurate than the simple Robertson approach.
-   */
-  function rgbToCCTImproved(r, g, b) {
-    // Normalize to 0-1
-    let rL = r / 255, gL = g / 255, bL = b / 255;
+  function avg(arr) { return arr.reduce((a,b)=>a+b,0)/arr.length; }
 
-    // Linearize (sRGB gamma decode)
-    rL = rL <= 0.04045 ? rL / 12.92 : Math.pow((rL + 0.055) / 1.055, 2.4);
-    gL = gL <= 0.04045 ? gL / 12.92 : Math.pow((gL + 0.055) / 1.055, 2.4);
-    bL = bL <= 0.04045 ? bL / 12.92 : Math.pow((bL + 0.055) / 1.055, 2.4);
+  function rgbToCCT(r, g, b) {
+    // sRGB gamma decode
+    let rL = r/255, gL = g/255, bL = b/255;
+    rL = rL<=0.04045 ? rL/12.92 : Math.pow((rL+0.055)/1.055, 2.4);
+    gL = gL<=0.04045 ? gL/12.92 : Math.pow((gL+0.055)/1.055, 2.4);
+    bL = bL<=0.04045 ? bL/12.92 : Math.pow((bL+0.055)/1.055, 2.4);
 
-    // sRGB to XYZ (D65 illuminant)
+    // sRGB D65 → XYZ
     const X = rL*0.4124564 + gL*0.3575761 + bL*0.1804375;
     const Y = rL*0.2126729 + gL*0.7151522 + bL*0.0721750;
     const Z = rL*0.0193339 + gL*0.1191920 + bL*0.9503041;
 
-    const denom = X + Y + Z;
-    if (denom < 0.001) return 5500;
+    const s = X+Y+Z;
+    if (s < 0.001) return 5500;
 
-    // CIE xy chromaticity
-    const cx = X / denom;
-    const cy = Y / denom;
+    const cx = X/s, cy = Y/s;
 
-    // McCamy's approximation (1992) — valid 2856K–6500K, ±2% error
+    // McCamy 1992
     const n = (cx - 0.3320) / (cy - 0.1858);
-    let cct = -449*n*n*n + 3525*n*n - 6823.3*n + 5520.33;
-
-    // Clamp to plausible range
-    cct = Math.min(Math.max(cct, 1800), 10000);
-    return Math.round(cct / 50) * 50;
+    const cct = -449*n*n*n + 3525*n*n - 6823.3*n + 5520.33;
+    return Math.min(Math.max(cct, 1800), 10000);
   }
 
-  function drawHistogram(hist) {
+  function drawHistogram() {
     const W = histCanvas.width, H = histCanvas.height;
-    hctx.clearRect(0, 0, W, H);
-    const max = Math.max(...hist, 1);
-    const bw = W / 256;
-    for (let i = 0; i < 256; i++) {
-      const h = (hist[i] / max) * H;
-      const bri = Math.round(i / 255 * 255);
-      hctx.fillStyle = `rgba(${bri},${bri},${bri},0.85)`;
-      hctx.fillRect(i * bw, H - h, Math.ceil(bw), h);
+    hctx.clearRect(0,0,W,H);
+    const fd = hctx2d.getImageData(0,0,hiddenCanvas.width,hiddenCanvas.height).data;
+    const hist = new Array(256).fill(0);
+    for (let i=0;i<fd.length;i+=4) hist[Math.round(0.299*fd[i]+0.587*fd[i+1]+0.114*fd[i+2])]++;
+    const max = Math.max(...hist,1);
+    const bw = W/256;
+    for (let i=0;i<256;i++) {
+      const h = (hist[i]/max)*H;
+      const bri = Math.round(i/255*255);
+      hctx.fillStyle = `rgba(${bri},${bri},${bri},0.9)`;
+      hctx.fillRect(i*bw, H-h, Math.ceil(bw), h);
     }
   }
 
   function cctToHex(cct) {
-    let r, g, b;
-    const t = cct / 100;
-    if (t <= 66) {
-      r = 255;
-      g = Math.max(0, Math.min(255, 99.47 * Math.log(t) - 161.12));
-      b = t <= 19 ? 0 : Math.max(0, Math.min(255, 138.52 * Math.log(t - 10) - 305.04));
-    } else {
-      r = Math.max(0, Math.min(255, 329.70 * Math.pow(t - 60, -0.133)));
-      g = Math.max(0, Math.min(255, 288.12 * Math.pow(t - 60, -0.075)));
-      b = 255;
-    }
-    return '#' + [r, g, b].map(v => Math.round(v).toString(16).padStart(2, '0')).join('');
+    let r,g,b; const t=cct/100;
+    if(t<=66){ r=255; g=Math.max(0,Math.min(255,99.47*Math.log(t)-161.12)); b=t<=19?0:Math.max(0,Math.min(255,138.52*Math.log(t-10)-305.04)); }
+    else{ r=Math.max(0,Math.min(255,329.70*Math.pow(t-60,-0.133))); g=Math.max(0,Math.min(255,288.12*Math.pow(t-60,-0.075))); b=255; }
+    return '#'+[r,g,b].map(v=>Math.round(v).toString(16).padStart(2,'0')).join('');
   }
 
   function saveShot() {
-    if (!stream) { alert('Start camera first to save a reading.'); return; }
+    if (!stream) { alert('Start camera first.'); return; }
     const now = new Date();
+    const ndStops = lastNDStop;
+    const ndDensity = parseFloat((ndStops * 0.3).toFixed(1));
+    const ndNumber = Math.pow(2, Math.round(ndStops));
     const shot = {
       id: Date.now(),
       cct: lastCCT,
       lum: lastLum,
       gm: lastGM,
-      time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      nd: ndStops < 0.3 ? 'Clear' : 'ND ' + ndNumber + ' (' + ndDensity + ')',
+      time: now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),
       date: now.toLocaleDateString(),
       color: cctToHex(lastCCT)
     };
     shots.unshift(shot);
-    if (shots.length > 30) shots.pop();
-    try { localStorage.setItem('cinetemp_shots', JSON.stringify(shots)); } catch(e) {}
+    if(shots.length>30) shots.pop();
+    try { localStorage.setItem('cinetemp_shots2', JSON.stringify(shots)); } catch(e){}
     renderShots();
+    // Flash feedback
+    const btn = document.getElementById('capture-btn');
+    btn.style.borderColor = '#00c864';
+    setTimeout(() => btn.style.borderColor = '#fff', 300);
   }
 
   function deleteShot(id) {
-    shots = shots.filter(s => s.id !== id);
-    try { localStorage.setItem('cinetemp_shots', JSON.stringify(shots)); } catch(e) {}
+    shots = shots.filter(s=>s.id!==id);
+    try { localStorage.setItem('cinetemp_shots2', JSON.stringify(shots)); } catch(e){}
     renderShots();
   }
 
   function renderShots() {
     const list = document.getElementById('shots-list');
     document.getElementById('shot-count').textContent = shots.length;
-    if (!shots.length) {
-      list.innerHTML = '<div id="empty-shots">No saved readings yet</div>';
-      return;
-    }
-    list.innerHTML = shots.map(s => `
+    if (!shots.length) { list.innerHTML='<div id="empty-shots">No saved readings yet</div>'; return; }
+    list.innerHTML = shots.map(s=>`
       <div class="shot-item">
         <div class="shot-swatch" style="background:${s.color}"></div>
         <div class="shot-info">
-          <div class="shot-cct">${s.cct} K</div>
-          <div class="shot-meta">${s.date} ${s.time} · Lum ${s.lum}% · ${s.gm >= 0 ? '+'+s.gm+'G' : Math.abs(s.gm)+'M'}</div>
+          <div class="shot-cct">${s.cct.toLocaleString()} K &nbsp;<span style="font-size:12px;color:rgba(255,255,255,0.4)">${s.nd}</span></div>
+          <div class="shot-meta">${s.date} ${s.time} · Lum ${s.lum}% · G/M ${s.gm>=0?'+'+s.gm:s.gm}</div>
         </div>
         <span class="shot-del" onclick="deleteShot(${s.id})"><i class="ti ti-x"></i></span>
-      </div>
-    `).join('');
+      </div>`).join('');
   }
 
   renderShots();
