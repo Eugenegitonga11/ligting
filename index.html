@@ -8,68 +8,47 @@
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0a0a; color: #f0f0f0; min-height: 100vh; }
-
   #header { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; border-bottom: 0.5px solid rgba(255,255,255,0.1); }
   #header h1 { font-size: 15px; font-weight: 600; letter-spacing: 0.15em; color: #fff; }
   .badge { font-size: 11px; padding: 3px 10px; border-radius: 20px; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.5); border: 0.5px solid rgba(255,255,255,0.12); }
   .badge.live { background: rgba(0,200,100,0.15); color: #00c864; border-color: rgba(0,200,100,0.3); }
-
   #main { display: grid; grid-template-columns: 1fr 280px; min-height: calc(100vh - 49px); }
-
-  /* Camera */
   #camera-section { position: relative; background: #000; overflow: hidden; }
   #videoEl { width: 100%; height: 100%; object-fit: cover; display: none; }
   #canvas-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: none; }
   #no-camera { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; min-height: 400px; color: rgba(255,255,255,0.4); gap: 12px; }
   #no-camera i { font-size: 48px; }
-  #no-camera p { font-size: 13px; }
+  #no-camera p { font-size: 13px; text-align:center; max-width:260px; line-height:1.5; }
   #start-btn { margin-top: 8px; padding: 10px 24px; border-radius: 8px; border: 0.5px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.08); color: #fff; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: background 0.15s; }
   #start-btn:hover { background: rgba(255,255,255,0.14); }
-
-  /* Readings overlay */
   #readings-overlay { position: absolute; top: 14px; left: 14px; display: none; flex-direction: column; gap: 8px; }
-  .reading-pill { padding: 6px 14px; border-radius: 20px; background: rgba(0,0,0,0.6); color: #fff; font-size: 13px; font-weight: 500; letter-spacing: 0.04em; backdrop-filter: blur(6px); border: 0.5px solid rgba(255,255,255,0.1); }
-  .reading-pill span.label { font-size: 10px; opacity: 0.55; margin-right: 5px; letter-spacing: 0.08em; text-transform: uppercase; }
-
-  /* Crosshair */
+  .reading-pill { padding: 6px 14px; border-radius: 20px; background: rgba(0,0,0,0.65); color: #fff; font-size: 14px; font-weight: 600; letter-spacing: 0.04em; backdrop-filter: blur(6px); border: 0.5px solid rgba(255,255,255,0.1); }
+  .reading-pill span.label { font-size: 10px; font-weight:400; opacity: 0.55; margin-right: 6px; letter-spacing: 0.08em; text-transform: uppercase; }
   #crosshair { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 60px; height: 60px; pointer-events: none; display: none; }
-  #crosshair::before, #crosshair::after { content: ''; position: absolute; background: rgba(255,255,255,0.6); }
+  #crosshair::before, #crosshair::after { content: ''; position: absolute; background: rgba(255,255,255,0.55); }
   #crosshair::before { width: 1px; height: 100%; left: 50%; }
   #crosshair::after { height: 1px; width: 100%; top: 50%; }
-
-  /* Histogram */
   #histogram-container { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.55); padding: 8px 14px 8px; display: none; }
   #histogram-container p { font-size: 10px; color: rgba(255,255,255,0.35); margin-bottom: 4px; letter-spacing: 0.06em; text-transform: uppercase; }
   #histCanvas { width: 100%; height: 52px; display: block; }
-
-  /* Sidebar */
   #sidebar { border-left: 0.5px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; background: #111; }
   #lens-selector { display: flex; gap: 6px; padding: 10px 14px; border-bottom: 0.5px solid rgba(255,255,255,0.08); }
   .lens-btn { flex: 1; padding: 6px 0; font-size: 12px; border: 0.5px solid rgba(255,255,255,0.12); border-radius: 8px; background: transparent; color: rgba(255,255,255,0.45); cursor: pointer; transition: all 0.15s; }
   .lens-btn.active { background: rgba(255,255,255,0.1); color: #fff; border-color: rgba(255,255,255,0.25); }
-
   .sidebar-section { padding: 14px; border-bottom: 0.5px solid rgba(255,255,255,0.08); }
   .sidebar-section h3 { font-size: 10px; font-weight: 500; color: rgba(255,255,255,0.35); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 12px; }
   .metric-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
   .metric-label { font-size: 12px; color: rgba(255,255,255,0.45); }
   .metric-value { font-size: 16px; font-weight: 500; color: #fff; }
   .metric-unit { font-size: 11px; color: rgba(255,255,255,0.4); margin-left: 2px; }
-
-  /* Temp bar */
   #temp-bar-wrap { margin-top: 10px; margin-bottom: 12px; }
   #temp-bar-track { height: 6px; border-radius: 3px; background: linear-gradient(to right, #FF6B00, #FFD580, #FFFFFF, #B0D8FF, #6BB5FF); position: relative; }
   #temp-bar-thumb { position: absolute; top: -5px; width: 16px; height: 16px; border-radius: 50%; border: 2px solid #fff; background: #222; transform: translateX(-50%); transition: left 0.25s ease; box-shadow: 0 0 0 1px rgba(255,255,255,0.2); }
-
-  /* Light source tags */
   .light-source-tags { display: flex; flex-wrap: wrap; gap: 5px; }
   .ls-tag { padding: 3px 9px; border-radius: 12px; font-size: 11px; border: 0.5px solid rgba(255,255,255,0.12); color: rgba(255,255,255,0.4); transition: all 0.2s; }
   .ls-tag.active { background: rgba(255,180,0,0.15); color: #FFB400; border-color: rgba(255,180,0,0.3); }
-
-  /* Save button */
   #save-btn { width: 100%; padding: 10px; border-radius: 8px; border: 0.5px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.06); color: #fff; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 7px; margin-top: 12px; transition: background 0.15s; }
   #save-btn:hover { background: rgba(255,255,255,0.1); }
-
-  /* Shot library */
   #shots-list { flex: 1; overflow-y: auto; padding: 8px 14px; }
   .shot-item { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 0.5px solid rgba(255,255,255,0.06); }
   .shot-swatch { width: 32px; height: 32px; border-radius: 6px; flex-shrink: 0; border: 0.5px solid rgba(255,255,255,0.1); }
@@ -79,7 +58,8 @@
   .shot-del { font-size: 14px; color: rgba(255,255,255,0.25); cursor: pointer; padding: 4px; border-radius: 4px; transition: color 0.15s; }
   .shot-del:hover { color: rgba(255,80,80,0.8); }
   #empty-shots { text-align: center; padding: 28px 0; color: rgba(255,255,255,0.25); font-size: 12px; }
-
+  /* calibration note */
+  #cal-note { font-size: 10px; color: rgba(255,255,255,0.25); padding: 6px 14px 10px; line-height: 1.5; }
   @media (max-width: 680px) {
     #main { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
     #sidebar { border-left: none; border-top: 0.5px solid rgba(255,255,255,0.08); }
@@ -149,6 +129,7 @@
         <span class="ls-tag" data-min="5500" data-max="6500">Daylight</span>
         <span class="ls-tag" data-min="6500" data-max="8000">Overcast</span>
       </div>
+      <div id="cal-note">* Browser cameras apply auto white-balance. Readings are approximate — use a grey card for best accuracy.</div>
     </div>
 
     <div class="sidebar-section">
@@ -188,17 +169,44 @@
   let lastCCT = 5500, lastLum = 50, lastGM = 0;
   let frameCount = 0, lastFpsTime = Date.now();
 
+  // Smoothing buffers
+  let cctBuffer = [], bufSize = 8;
+
   const video = document.getElementById('videoEl');
   const histCanvas = document.getElementById('histCanvas');
   const hctx = histCanvas.getContext('2d');
   const overlay = document.getElementById('canvas-overlay');
-  const octx = overlay.getContext('2d');
+  const octx = overlay.getContext('2d', { willReadFrequently: true });
 
   async function startCamera() {
     try {
-      stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: currentFacingMode, width: { ideal: 1920 }, height: { ideal: 1080 } }
-      });
+      const constraints = {
+        video: {
+          facingMode: currentFacingMode,
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+          // Disable AWB if browser supports it
+          whiteBalanceMode: 'manual',
+          colorTemperature: 5500
+        }
+      };
+      try {
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+      } catch(e) {
+        // Fallback without advanced constraints
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: currentFacingMode, width: { ideal: 1920 }, height: { ideal: 1080 } }
+        });
+      }
+      // Try to lock white balance via ImageCapture API
+      try {
+        const track = stream.getVideoTracks()[0];
+        const caps = track.getCapabilities();
+        if (caps.whiteBalanceMode && caps.whiteBalanceMode.includes('manual')) {
+          await track.applyConstraints({ advanced: [{ whiteBalanceMode: 'manual', colorTemperature: 5500 }] });
+        }
+      } catch(e) { /* not supported, ignore */ }
+
       video.srcObject = stream;
       video.style.display = 'block';
       overlay.style.display = 'block';
@@ -214,7 +222,8 @@
         analyzeLoop();
       });
     } catch(e) {
-      document.getElementById('no-camera').querySelector('p').textContent = 'Camera access denied. Please allow camera permission and reload.';
+      document.getElementById('no-camera').querySelector('p').textContent =
+        'Camera access denied. Please allow camera permission and reload.';
     }
   }
 
@@ -234,49 +243,68 @@
     if (!video.videoWidth) { animFrame = requestAnimationFrame(analyzeLoop); return; }
     octx.drawImage(video, 0, 0, overlay.width, overlay.height);
 
-    const sampleW = Math.min(overlay.width, 400);
-    const sampleH = Math.min(overlay.height, 225);
-    const x0 = Math.floor((overlay.width - sampleW) / 2);
-    const y0 = Math.floor((overlay.height - sampleH) / 2);
-    const imgData = octx.getImageData(x0, y0, sampleW, sampleH);
+    // Sample center 30% of frame (avoids dark edges skewing results)
+    const sw = Math.floor(overlay.width * 0.3);
+    const sh = Math.floor(overlay.height * 0.3);
+    const x0 = Math.floor((overlay.width - sw) / 2);
+    const y0 = Math.floor((overlay.height - sh) / 2);
+    const imgData = octx.getImageData(x0, y0, sw, sh);
     const d = imgData.data;
 
     let rSum = 0, gSum = 0, bSum = 0, n = 0;
     const hist = new Array(256).fill(0);
+
+    // Skip very dark and very bright pixels (over/under exposed)
     for (let i = 0; i < d.length; i += 4) {
+      const lv = 0.299*d[i] + 0.587*d[i+1] + 0.114*d[i+2];
+      if (lv < 20 || lv > 235) continue; // skip clipped pixels
       rSum += d[i]; gSum += d[i+1]; bSum += d[i+2]; n++;
-      const lum = Math.round(0.299*d[i] + 0.587*d[i+1] + 0.114*d[i+2]);
-      hist[lum]++;
+      hist[Math.round(lv)]++;
     }
+    if (n === 0) { animFrame = requestAnimationFrame(analyzeLoop); return; }
 
     const rAvg = rSum / n, gAvg = gSum / n, bAvg = bSum / n;
-    const cct = rgbToCCT(rAvg, gAvg, bAvg);
-    const lum = Math.round((rAvg*0.299 + gAvg*0.587 + bAvg*0.114) / 255 * 100);
-    const gmShift = Math.round((gAvg - (rAvg + bAvg) / 2) * 0.1);
-    const ev = parseFloat((Math.log2(lum / 12.5 + 0.01)).toFixed(1));
+
+    // Full frame histogram for display
+    const fullData = octx.getImageData(0, 0, overlay.width, overlay.height).data;
+    const fullHist = new Array(256).fill(0);
+    for (let i = 0; i < fullData.length; i += 4) {
+      fullHist[Math.round(0.299*fullData[i] + 0.587*fullData[i+1] + 0.114*fullData[i+2])]++;
+    }
+
+    const cct = rgbToCCTImproved(rAvg, gAvg, bAvg);
+    const lumRaw = (rAvg*0.299 + gAvg*0.587 + bAvg*0.114);
+    const lum = Math.round(lumRaw / 255 * 100);
+    const gmShift = Math.round((gAvg - (rAvg + bAvg) / 2) * 0.12);
+    const ev = parseFloat((Math.log2(lumRaw / 18 + 0.01)).toFixed(1));
     const ndStop = lum > 5 ? parseFloat((Math.log2(lum / 5)).toFixed(1)) : 0;
 
-    lastCCT = cct; lastLum = lum; lastGM = gmShift;
+    // Smooth CCT over buffer
+    cctBuffer.push(cct);
+    if (cctBuffer.length > bufSize) cctBuffer.shift();
+    const smoothCCT = Math.round(cctBuffer.reduce((a,b) => a+b, 0) / cctBuffer.length / 50) * 50;
 
-    document.getElementById('cct-val').textContent = cct;
+    lastCCT = smoothCCT; lastLum = lum; lastGM = gmShift;
+
+    document.getElementById('cct-val').textContent = smoothCCT;
     document.getElementById('nd-val').textContent = ndStop > 0 ? 'ND' + Math.pow(2, Math.ceil(ndStop)) : 'Clear';
     document.getElementById('ev-val').textContent = ev;
     document.getElementById('gm-val').textContent = gmShift > 0 ? '+' + gmShift + ' G' : gmShift < 0 ? Math.abs(gmShift) + ' M' : '0';
-    document.getElementById('sb-cct').textContent = cct;
+    document.getElementById('sb-cct').textContent = smoothCCT;
     document.getElementById('sb-lum').textContent = lum;
     document.getElementById('sb-nd').textContent = ndStop > 0 ? ndStop.toFixed(1) + ' stop' : 'Clear';
     document.getElementById('sb-ev').textContent = ev;
     document.getElementById('sb-gm').textContent = gmShift > 0 ? '+' + gmShift + ' G' : gmShift < 0 ? Math.abs(gmShift) + ' M' : '0';
 
-    const pct = Math.min(Math.max((cct - 1800) / (8000 - 1800), 0), 1);
+    const pct = Math.min(Math.max((smoothCCT - 1800) / (8000 - 1800), 0), 1);
     document.getElementById('temp-bar-thumb').style.left = (pct * 100) + '%';
 
     document.querySelectorAll('.ls-tag').forEach(tag => {
       const min = parseInt(tag.dataset.min), max = parseInt(tag.dataset.max);
-      tag.classList.toggle('active', cct >= min && cct <= max);
+      tag.classList.toggle('active', smoothCCT >= min && smoothCCT <= max);
     });
 
-    drawHistogram(hist);
+    drawHistogram(fullHist);
 
     frameCount++;
     const now = Date.now();
@@ -288,15 +316,38 @@
     animFrame = requestAnimationFrame(analyzeLoop);
   }
 
-  function rgbToCCT(r, g, b) {
-    const total = r + g + b + 0.001;
-    const rn = r / total, gn = g / total, bn = b / total;
-    const denom = (0.89656*rn - 0.75929*gn + 0.02198*bn) + 0.001;
-    const x = (-0.14282*rn + 1.54924*gn - 0.95641*bn) / denom;
-    const y = (-0.96422*rn + 1.67662*gn - 0.06840*bn) / denom;
-    const n = (x - 0.3320) / (0.1858 - y + 0.001);
-    const cct = 449*n*n*n + 3525*n*n + 6823.3*n + 5520.33;
-    return Math.min(Math.max(Math.round(cct / 50) * 50, 1800), 10000);
+  /**
+   * Improved CCT from RGB using CIE XYZ conversion then McCamy's formula.
+   * More accurate than the simple Robertson approach.
+   */
+  function rgbToCCTImproved(r, g, b) {
+    // Normalize to 0-1
+    let rL = r / 255, gL = g / 255, bL = b / 255;
+
+    // Linearize (sRGB gamma decode)
+    rL = rL <= 0.04045 ? rL / 12.92 : Math.pow((rL + 0.055) / 1.055, 2.4);
+    gL = gL <= 0.04045 ? gL / 12.92 : Math.pow((gL + 0.055) / 1.055, 2.4);
+    bL = bL <= 0.04045 ? bL / 12.92 : Math.pow((bL + 0.055) / 1.055, 2.4);
+
+    // sRGB to XYZ (D65 illuminant)
+    const X = rL*0.4124564 + gL*0.3575761 + bL*0.1804375;
+    const Y = rL*0.2126729 + gL*0.7151522 + bL*0.0721750;
+    const Z = rL*0.0193339 + gL*0.1191920 + bL*0.9503041;
+
+    const denom = X + Y + Z;
+    if (denom < 0.001) return 5500;
+
+    // CIE xy chromaticity
+    const cx = X / denom;
+    const cy = Y / denom;
+
+    // McCamy's approximation (1992) — valid 2856K–6500K, ±2% error
+    const n = (cx - 0.3320) / (cy - 0.1858);
+    let cct = -449*n*n*n + 3525*n*n - 6823.3*n + 5520.33;
+
+    // Clamp to plausible range
+    cct = Math.min(Math.max(cct, 1800), 10000);
+    return Math.round(cct / 50) * 50;
   }
 
   function drawHistogram(hist) {
@@ -306,8 +357,8 @@
     const bw = W / 256;
     for (let i = 0; i < 256; i++) {
       const h = (hist[i] / max) * H;
-      const b = Math.round(i / 255 * 255);
-      hctx.fillStyle = `rgba(${b},${b},${b},0.85)`;
+      const bri = Math.round(i / 255 * 255);
+      hctx.fillStyle = `rgba(${bri},${bri},${bri},0.85)`;
       hctx.fillRect(i * bw, H - h, Math.ceil(bw), h);
     }
   }
