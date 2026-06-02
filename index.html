@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CineLight</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=Syne:wght@600;700;800&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0c0c0f;
+    --surface: #13131a;
+    --surface2: #1a1a24;
+    --border: rgba(255,255,255,0.07);
+    --text: #e2ddd4;
+    --muted: #5a5760;
+    --accent: #f0a500;
+    --green: #3ddc84;
+    --magenta: #e040a0;
+    --font-mono: 'IBM Plex Mono', monospace;
+    --font-display: 'Syne', sans-serif;
+  }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font-mono); overflow: hidden; }
+
+  #app { display: grid; grid-template-columns: 280px 1fr 260px; grid-template-rows: 56px 1fr; height: 100vh; }
+
+  header {
+    grid-column: 1 / -1;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .logo { display: flex; align-items: center; gap: 10px; }
+  .logo-mark { width: 28px; height: 28px; border-radius: 8px; background: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 14px; }
+  .logo-text { font-family: var(--font-display); font-size: 18px; font-weight: 800; letter-spacing: -0.02em; }
+  .logo-sub { font-size: 10px; color: var(--muted); letter-spacing: 0.15em; text-transform: uppercase; }
+  .header-right { display: flex; align-items: center; gap: 12px; }
+  .live-badge { display: flex; align-items: center; gap: 6px; font-size: 10px; color: var(--green); letter-spacing: 0.1em; }
+  .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: pulse 1.5s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(0.8)} }
+
+  aside.left {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 20px 16px;
+    display: flex; flex-direction: column; gap: 10px;
+    overflow-y: auto;
+  }
+
+  main {
+    background: var(--bg);
+    padding: 20px;
+    display: flex; flex-direction: column; gap: 14px;
+    overflow-y: auto;
+  }
+
+  aside.right {
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    padding: 20px 16px;
+    display: flex; flex-direction: column; gap: 10px;
+    overflow-y: auto;
+  }
+
+  .card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+  }
+  .card-label {
+    font-size: 9px; color: var(--muted); letter-spacing: 0.18em;
+    text-transform: uppercase; margin-bottom: 8px;
+  }
+
+  .preview-wrap {
+    position: relative; border-radius: 14px; overflow: hidden;
+    background: #000; aspect-ratio: 16/9;
+    border: 1px solid var(--border);
+  }
+  #video { width: 100%; height: 100%; object-fit: cover; display: block; }
+  #canvas { display: none; }
+  .preview-overlay-top {
+    position: absolute; top: 12px; left: 12px; right: 12px;
+    display: flex; justify-content: space-between; align-items: flex-start;
+    pointer-events: none;
+  }
+  .kelvin-swatch {
+    width: 42px; height: 42px; border-radius: 10px;
+    border: 2px solid rgba(255,255,255,0.25);
+    transition: background 0.3s;
+    box-shadow: 0 0 24px rgba(0,0,0,0.5);
+  }
+  .preview-badge {
+    background: rgba(0,0,0,0.6); backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px; padding: 4px 10px;
+    font-size: 11px; color: var(--text);
+    display: flex; align-items: center; gap: 5px;
+  }
+  .locked-badge {
+    position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+    background: rgba(240,165,0,0.9); color: #000;
+    font-size: 9px; font-weight: 600; letter-spacing: 0.12em;
+    border-radius: 6px; padding: 3px 10px; display: none;
+  }
+
+  #perm-overlay {
+    position: absolute; inset: 0;
+    background: rgba(12,12,15,0.96); backdrop-filter: blur(8px);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 14px; border-radius: 14px; text-align: center; padding: 24px;
+  }
+  #perm-overlay .big-icon { font-size: 44px; }
+  #perm-overlay h3 { font-family: var(--font-display); font-size: 18px; font-weight: 700; }
+  #perm-overlay p { font-size: 11px; color: var(--muted); line-height: 1.7; max-width: 280px; }
+
+  .reading-value { font-size: 32px; font-weight: 500; line-height: 1; margin: 4px 0; transition: color 0.3s; }
+  .reading-unit { font-size: 10px; color: var(--muted); }
+
+  .k-bar-wrap { margin-top: 10px; position: relative; height: 6px; border-radius: 3px; background: linear-gradient(to right, #ff3800 0%, #ffb347 20%, #fff8ee 40%, #ffffff 60%, #deeeff 80%, #cce4ff 100%); }
+  .k-bar-thumb { position: absolute; top: -5px; width: 16px; height: 16px; border-radius: 50%; background: #fff; border: 2.5px solid var(--bg); transform: translateX(-50%); transition: left 0.35s cubic-bezier(0.4,0,0.2,1); box-shadow: 0 0 10px rgba(255,255,255,0.4); }
+
+  .gm-track { position: relative; height: 6px; border-radius: 3px; background: linear-gradient(to right, #3ddc84 0%, #888 50%, #e040a0 100%); margin: 8px 0 4px; }
+  .gm-thumb { position: absolute; top: -5px; width: 16px; height: 16px; border-radius: 50%; background: #fff; border: 2.5px solid var(--bg); transform: translateX(-50%); transition: left 0.35s cubic-bezier(0.4,0,0.2,1); box-shadow: 0 0 10px rgba(255,255,255,0.4); }
+  .gm-labels { display: flex; justify-content: space-between; }
+  .gm-labels span { font-size: 8px; color: var(--muted); }
+
+  #hist-canvas { width: 100%; height: 56px; border-radius: 4px; display: block; }
+  .hist-labels { display: flex; justify-content: space-between; margin-top: 4px; }
+  .hist-labels span { font-size: 9px; color: var(--muted); }
+
+  .ref-slider-wrap { margin: 8px 0; }
+  input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 4px; border-radius: 2px; outline: none; cursor: pointer; background: linear-gradient(to right, #ff3800 0%, #ffb347 25%, #fff 50%, #cce4ff 100%); }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #fff; border: 2px solid var(--bg); cursor: pointer; box-shadow: 0 0 8px rgba(255,255,255,0.3); }
+
+  .btn { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: var(--font-mono); font-size: 11px; padding: 8px 14px; cursor: pointer; letter-spacing: 0.06em; transition: all 0.15s; }
+  .btn:hover { border-color: rgba(255,255,255,0.2); background: rgba(255,255,255,0.06); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #000; font-weight: 600; }
+  .btn.primary:hover { background: #ffb830; }
+  .btn.locked { border-color: var(--accent); color: var(--accent); }
+  .pill-btn { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; color: var(--muted); font-family: var(--font-mono); font-size: 10px; padding: 5px 12px; cursor: pointer; transition: all 0.15s; letter-spacing: 0.06em; }
+  .pill-btn.active { background: rgba(255,255,255,0.15); color: var(--text); border-color: rgba(255,255,255,0.25); }
+  .lens-row { display: flex; gap: 6px; flex-wrap: wrap; }
+
+  .tabs { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 10px; }
+  .tab-btn { background: none; border: none; color: var(--muted); font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; padding: 8px 14px; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; margin-bottom: -1px; }
+  .tab-btn.active { color: var(--text); border-bottom-color: var(--accent); }
+
+  .snap-item { display: flex; gap: 10px; padding: 10px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 8px; align-items: flex-start; }
+  .snap-item img { width: 64px; height: 44px; border-radius: 6px; object-fit: cover; flex-shrink: 0; }
+  .snap-meta { flex: 1; min-width: 0; }
+  .snap-k { font-size: 14px; font-weight: 500; }
+  .snap-sub { font-size: 10px; color: var(--muted); margin-top: 3px; display: flex; gap: 10px; }
+  .snap-time { font-size: 9px; color: #3a3840; margin-top: 3px; }
+  .snap-note { font-size: 10px; color: #a88; font-style: italic; margin-top: 3px; }
+  .color-dot { width: 10px; height: 10px; border-radius: 3px; display: inline-block; flex-shrink: 0; margin-top: 3px; }
+
+  .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .compare-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
+  .compare-swatch { height: 22px; border-radius: 6px; margin: 8px 0; }
+  .compare-k { font-size: 20px; font-weight: 500; }
+  .compare-sub { font-size: 10px; color: var(--muted); margin-top: 2px; }
+  .delta-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 11px; }
+  .delta-row:last-child { border-bottom: none; }
+  .delta-label { color: var(--muted); }
+
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(6px); display: none; align-items: center; justify-content: center; z-index: 200; }
+  .modal-overlay.show { display: flex; }
+  .modal-card { background: #1a1a24; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 24px; width: 360px; }
+  .modal-title { font-family: var(--font-display); font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+  .modal-sub { font-size: 11px; color: var(--muted); margin-bottom: 16px; }
+  textarea { background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: var(--font-mono); font-size: 12px; padding: 10px; width: 100%; resize: none; outline: none; }
+  textarea:focus { border-color: rgba(255,255,255,0.2); }
+  .modal-actions { display: flex; gap: 10px; margin-top: 14px; }
+
+  .nd-badge { display: inline-block; background: rgba(255,255,255,0.07); border-radius: 6px; padding: 3px 8px; font-size: 11px; color: #aaa; margin-top: 6px; }
+  .section-hdr { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .section-hdr .label { font-size: 9px; color: var(--muted); letter-spacing: 0.18em; text-transform: uppercase; }
+  .label { font-size: 9px; color: var(--muted); letter-spacing: 0.18em; text-transform: uppercase; }
+
+  .empty { text-align: center; padding: 36px 0; }
+  .empty .eico { font-size: 36px; margin-bottom: 10px; }
+  .empty p { font-size: 12px; color: var(--muted); }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+
+  select { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: var(--font-mono); font-size: 11px; padding: 7px 10px; width: 100%; cursor: pointer; outline: none; }
+  select:focus { border-color: rgba(255,255,255,0.2); }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header>
+    <div class="logo">
+      <div class="logo-mark">🎬</div>
+      <div>
+        <div class="logo-text">CineLight</div>
+        <div class="logo-sub">Light Meter</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="live-badge" id="live-badge" style="display:none">
+        <div class="live-dot"></div>LIVE
+      </div>
+      <button class="btn" id="flip-btn" onclick="flipCamera()">⇌ Flip</button>
+      <button class="btn" id="lock-btn" onclick="toggleLock()">⏺ Lock</button>
+      <button class="btn primary" onclick="takeSnapshot()">📷 Capture</button>
+    </div>
+  </header>
+
+  <aside class="left">
+    <div class="card" id="kt-card">
+      <div class="card-label">Color Temperature</div>
+      <div class="reading-value" id="kelvin-val" style="color:#ffb347">5,600</div>
+      <div class="reading-unit">Kelvin</div>
+      <div class="k-bar-wrap"><div class="k-bar-thumb" id="k-thumb"></div></div>
+      <div style="font-size:10px;color:var(--muted);margin-top:6px" id="k-desc">Daylight / Flash</div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">ND Filter</div>
+      <div class="reading-value" id="nd-val">—</div>
+      <div class="reading-unit">stops</div>
+      <div class="nd-badge" id="nd-name">Clear</div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Luminance</div>
+      <div class="reading-value" id="lux-val">800</div>
+      <div class="reading-unit">lux (approx)</div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Green / Magenta Shift</div>
+      <div class="reading-value" id="gm-val" style="color:#888">0</div>
+      <div class="reading-unit" id="gm-unit">neutral</div>
+      <div class="gm-track"><div class="gm-thumb" id="gm-thumb" style="left:50%"></div></div>
+      <div class="gm-labels">
+        <span>G9</span><span>G6</span><span>G3</span><span>0</span><span>M3</span><span>M6</span><span>M9</span>
+      </div>
+    </div>
+  </aside>
+
+  <main>
+    <div class="preview-wrap" id="preview-wrap">
+      <video id="video" autoplay playsinline muted></video>
+      <canvas id="canvas"></canvas>
+      <div class="preview-overlay-top">
+        <div class="preview-badge" id="lens-badge">Wide</div>
+        <div class="kelvin-swatch" id="k-swatch"></div>
+      </div>
+      <div class="locked-badge" id="locked-badge">LOCKED</div>
+      <div id="perm-overlay">
+        <div class="big-icon">📷</div>
+        <h3>Enable Camera</h3>
+        <p>CineLight uses your camera to measure color temperature, ND filter values, and luminance in real time. No video is recorded or stored.</p>
+        <button class="btn primary" onclick="requestCamera()" id="grant-btn">Allow Camera Access</button>
+      </div>
+    </div>
+
+    <div class="lens-row" id="lens-row">
+      <button class="pill-btn active" onclick="setLens(this,'Wide')">Wide</button>
+      <button class="pill-btn" onclick="setLens(this,'Main')">Main</button>
+      <button class="pill-btn" onclick="setLens(this,'Tele')">Tele</button>
+      <button class="pill-btn" onclick="setLens(this,'Front')">Front</button>
+    </div>
+
+    <div class="card">
+      <div class="section-hdr">
+        <div class="label">Luminance Histogram</div>
+      </div>
+      <canvas id="hist-canvas" height="56"></canvas>
+      <div class="hist-labels"><span>Shadows</span><span>Mids</span><span>Highlights</span></div>
+    </div>
+
+    <div class="card">
+      <div class="section-hdr">
+        <div class="label">Kelvin Reference</div>
+        <div id="ref-swatch" style="width:18px;height:18px;border-radius:4px;border:1px solid rgba(255,255,255,0.15)"></div>
+      </div>
+      <input type="range" min="1500" max="10000" step="50" value="5600" id="ref-slider" oninput="updateRefSlider()" />
+      <div style="display:flex;justify-content:space-between;margin-top:8px;align-items:center">
+        <span style="font-size:12px" id="ref-k-label">5,600K</span>
+        <span style="font-size:11px;color:var(--muted)" id="ref-diff-label">✓ Matched</span>
+      </div>
+      <div style="font-size:10px;color:var(--muted);margin-top:3px" id="ref-desc">Daylight / Flash</div>
+    </div>
+  </main>
+
+  <aside class="right">
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('history',this)">History</button>
+      <button class="tab-btn" onclick="switchTab('compare',this)">Compare</button>
+    </div>
+
+    <div id="tab-history">
+      <div class="section-hdr">
+        <div class="label">Shot Library (<span id="snap-count">0</span>)</div>
+        <button class="btn" style="font-size:9px;padding:4px 8px" onclick="clearAll()">Clear</button>
+      </div>
+      <div id="history-list">
+        <div class="empty"><div class="eico">📷</div><p>No readings saved yet.<br>Use Capture to save a reading.</p></div>
+      </div>
+    </div>
+
+    <div id="tab-compare" style="display:none">
+      <div class="label" style="margin-bottom:10px">Scene Comparison</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+        <div>
+          <div style="font-size:9px;color:var(--muted);margin-bottom:4px">SLOT A</div>
+          <select id="sel-a" onchange="updateCompare()"><option value="">— select —</option></select>
+        </div>
+        <div>
+          <div style="font-size:9px;color:var(--muted);margin-bottom:4px">SLOT B</div>
+          <select id="sel-b" onchange="updateCompare()"><option value="">— select —</option></select>
+        </div>
+      </div>
+      <div id="compare-result" style="display:none">
+        <div class="compare-grid" id="compare-cards"></div>
+        <div class="card" style="margin-top:10px">
+          <div class="label" style="margin-bottom:8px">Delta Analysis</div>
+          <div id="delta-rows"></div>
+        </div>
+      </div>
+      <div class="empty" id="compare-empty" style="padding:24px 0"><div class="eico">⚖️</div><p>Select two readings<br>to compare</p></div>
+    </div>
+  </aside>
+</div>
+
+<div class="modal-overlay" id="modal">
+  <div class="modal-card">
+    <div class="modal-title">Save Reading</div>
+    <div class="modal-sub" id="modal-sub">5,600K · Clear · Wide</div>
+    <textarea id="note-input" rows="3" placeholder="Add a note (optional)..."></textarea>
+    <div class="modal-actions">
+      <button class="btn" style="flex:1" onclick="closeModal()">Cancel</button>
+      <button class="btn primary" style="flex:2" onclick="saveSnapshot()">Save to Library</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const KELVIN_COLORS = [
+  {k:1000,r:255,g:56,b:0},{k:1500,r:255,g:109,b:0},{k:2000,r:255,g:137,b:18},
+  {k:2500,r:255,g:161,b:72},{k:3000,r:255,g:180,b:107},{k:3200,r:255,g:186,b:120},
+  {k:4000,r:255,g:209,b:163},{k:5000,r:255,g:228,b:206},{k:5500,r:255,g:236,b:224},
+  {k:6000,r:255,g:243,b:239},{k:6500,r:255,g:249,b:253},{k:7000,r:245,g:243,b:255},
+  {k:8000,r:227,g:233,b:255},{k:9000,r:214,g:225,b:255},{k:10000,r:204,g:219,b:255}
+];
+
+function kelvinToRGB(k){
+  for(let i=0;i<KELVIN_COLORS.length-1;i++){
+    const a=KELVIN_COLORS[i],b=KELVIN_COLORS[i+1];
+    if(k>=a.k&&k<=b.k){
+      const t=(k-a.k)/(b.k-a.k);
+      return{r:Math.round(a.r+t*(b.r-a.r)),g:Math.round(a.g+t*(b.g-a.g)),b:Math.round(a.b+t*(b.b-a.b))};
+    }
+  }
+  return k<1000?{r:255,g:56,b:0}:{r:204,g:219,b:255};
+}
+
+function rgbToKelvin(r,g,b){
+  const ratio=r/(b+1);
+  let kelvin;
+  if(ratio>4)kelvin=1800+(ratio-4)*100;
+  else if(ratio>2)kelvin=3000+(2-ratio)*800;
+  else kelvin=5000+(2-ratio)*2000;
+  const greenBias=g-(r+b)/2;
+  kelvin+=greenBias*8;
+  return Math.max(1500,Math.min(12000,Math.round(kelvin/50)*50));
+}
+
+function computeNDStop(lux,targetLux=800){
+  if(lux<=0)return 0;
+  const stops=Math.log2(lux/targetLux);
+  return Math.max(0,Math.round(stops*3)/3);
+}
+
+function ndStopToName(stops){
+  if(stops<0.1)return"Clear";
+  const names={0.3:"ND 0.1",0.6:"ND 0.2",1:"ND 0.3",2:"ND 0.6",3:"ND 0.9",4:"ND 1.2",6:"ND 1.8",8:"ND 2.4"};
+  const closest=Object.keys(names).reduce((a,b)=>Math.abs(b-stops)<Math.abs(a-stops)?b:a);
+  return names[closest]||`ND (${stops.toFixed(1)} stops)`;
+}
+
+function luxFromBrightness(brightness){return Math.pow(10,brightness*5)*0.1;}
+
+function kelvinDesc(k){
+  if(k<=2000)return"Candlelight / Tungsten";
+  if(k<=3200)return"Tungsten / Incandescent";
+  if(k<=4000)return"Warm White LED";
+  if(k<=5000)return"Morning Light";
+  if(k<=5600)return"Daylight / Flash";
+  if(k<=6500)return"Cloudy Sky";
+  if(k<=8000)return"Hazy Sky";
+  return"Clear Blue Sky";
+}
+
+let cameraStarted=false,locked=false,facing="environment",activeLens="Wide";
+let kelvin=5600,gm=0,lux=800,ndStops=0,histData=new Array(32).fill(0);
+let snapshots=[],pendingSnap=null,rafId=null,stream=null;
+
+const video=document.getElementById('video');
+const canvas=document.getElementById('canvas');
+const histCanvas=document.getElementById('hist-canvas');
+
+window.addEventListener('load',()=>{
+  if(navigator.permissions){
+    navigator.permissions.query({name:'camera'}).then(r=>{
+      if(r.state==='granted')startCamera();
+    }).catch(()=>{});
+  }
+});
+
+async function requestCamera(){
+  document.getElementById('grant-btn').textContent='Requesting…';
+  try{
+    const s=await navigator.mediaDevices.getUserMedia({video:true,audio:false});
+    s.getTracks().forEach(t=>t.stop());
+    startCamera();
+  }catch(e){
+    document.getElementById('grant-btn').textContent='Allow Camera Access';
+    document.getElementById('perm-overlay').querySelector('p').textContent='Camera access was denied. Please allow camera access in your browser settings and refresh.';
+  }
+}
+
+async function startCamera(){
+  try{
+    if(stream)stream.getTracks().forEach(t=>t.stop());
+    stream=await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:facing==='user'?'user':'environment',width:{ideal:1280},height:{ideal:720}},
+      audio:false
+    });
+    video.srcObject=stream;
+    await video.play();
+    document.getElementById('perm-overlay').style.display='none';
+    document.getElementById('live-badge').style.display='flex';
+    cameraStarted=true;
+    startAnalysis();
+  }catch(e){console.error(e);}
+}
+
+function startAnalysis(){
+  if(rafId)cancelAnimationFrame(rafId);
+  const analyze=()=>{
+    if(!cameraStarted||locked){rafId=requestAnimationFrame(analyze);return;}
+    if(video.readyState<2){rafId=requestAnimationFrame(analyze);return;}
+    canvas.width=80;canvas.height=60;
+    const ctx=canvas.getContext('2d');
+    ctx.drawImage(video,0,0,80,60);
+    const d=ctx.getImageData(0,0,80,60).data;
+    let rS=0,gS=0,bS=0,count=0;
+    const hist=new Array(32).fill(0);
+    for(let i=0;i<d.length;i+=4){
+      const r=d[i],g=d[i+1],b=d[i+2];
+      rS+=r;gS+=g;bS+=b;count++;
+      const bright=Math.round((0.299*r+0.587*g+0.114*b)/8);
+      hist[Math.min(31,bright)]++;
+    }
+    const total=count||1;
+    const avgR=rS/total,avgG=gS/total,avgB=bS/total;
+    const brightness=(0.299*avgR+0.587*avgG+0.114*avgB)/255;
+    kelvin=rgbToKelvin(avgR,avgG,avgB);
+    gm=Math.max(-9,Math.min(9,Math.round((avgG-(avgR+avgB)/2)/12)));
+    lux=Math.round(luxFromBrightness(brightness));
+    ndStops=computeNDStop(lux);
+    const maxH=Math.max(...hist,1);
+    histData=hist.map(v=>v/maxH);
+    updateUI();
+    drawHistogram();
+    rafId=requestAnimationFrame(analyze);
+  };
+  rafId=requestAnimationFrame(analyze);
+}
+
+function updateUI(){
+  const c=kelvinToRGB(kelvin);
+  const css=`rgb(${c.r},${c.g},${c.b})`;
+  document.getElementById('kelvin-val').textContent=kelvin.toLocaleString();
+  document.getElementById('kelvin-val').style.color=css;
+  document.getElementById('k-swatch').style.background=css;
+  document.getElementById('k-swatch').style.boxShadow=`0 0 20px ${css}55`;
+  document.getElementById('k-thumb').style.left=`${Math.max(0,Math.min(100,((kelvin-1500)/8500)*100))}%`;
+  document.getElementById('k-desc').textContent=kelvinDesc(kelvin);
+  document.getElementById('kt-card').style.borderColor=`${css}33`;
+  document.getElementById('nd-val').textContent=ndStops<0.1?'—':ndStops.toFixed(1);
+  document.getElementById('nd-name').textContent=ndStopToName(ndStops);
+  document.getElementById('lux-val').textContent=lux>999?(lux/1000).toFixed(1)+'k':lux;
+  const gmEl=document.getElementById('gm-val');
+  gmEl.textContent=gm===0?'0':`${gm>0?'M':'G'}${Math.abs(gm)}`;
+  gmEl.style.color=gm>0?'#e040a0':gm<0?'#3ddc84':'#888';
+  document.getElementById('gm-unit').textContent=gm===0?'neutral':gm>0?'magenta':'green';
+  document.getElementById('gm-thumb').style.left=`${((gm+9)/18)*100}%`;
+  document.getElementById('gm-thumb').style.background=gm>0?'#e040a0':gm<0?'#3ddc84':'#fff';
+  const refK=parseInt(document.getElementById('ref-slider').value);
+  const diff=Math.abs(kelvin-refK);
+  const diffDir=kelvin>refK?'warmer':'cooler';
+  const diffEl=document.getElementById('ref-diff-label');
+  diffEl.textContent=diff>100?`${diff.toLocaleString()}K ${diffDir}`:'✓ Matched';
+  diffEl.style.color=diff>100?'var(--muted)':'var(--green)';
+}
+
+function drawHistogram(){
+  const hc=histCanvas;
+  hc.width=hc.offsetWidth||320;
+  const ctx=hc.getContext('2d');
+  ctx.clearRect(0,0,hc.width,hc.height);
+  const w=hc.width/histData.length;
+  histData.forEach((v,i)=>{
+    const shade=Math.round((i/histData.length)*255);
+    ctx.fillStyle=`rgb(${shade},${shade},${shade})`;
+    ctx.fillRect(i*w,hc.height-v*hc.height,w-1,v*hc.height);
+  });
+}
+
+function updateRefSlider(){
+  const k=parseInt(document.getElementById('ref-slider').value);
+  const c=kelvinToRGB(k);
+  const css=`rgb(${c.r},${c.g},${c.b})`;
+  document.getElementById('ref-k-label').textContent=k.toLocaleString()+'K';
+  document.getElementById('ref-k-label').style.color=css;
+  document.getElementById('ref-swatch').style.background=css;
+  document.getElementById('ref-desc').textContent=kelvinDesc(k);
+  const diff=Math.abs(kelvin-k);
+  const diffDir=kelvin>k?'warmer':'cooler';
+  const diffEl=document.getElementById('ref-diff-label');
+  diffEl.textContent=diff>100?`${diff.toLocaleString()}K ${diffDir}`:'✓ Matched';
+  diffEl.style.color=diff>100?'var(--muted)':'var(--green)';
+}
+
+function flipCamera(){
+  facing=facing==='environment'?'user':'environment';
+  if(cameraStarted)startCamera();
+}
+
+function toggleLock(){
+  locked=!locked;
+  const btn=document.getElementById('lock-btn');
+  const badge=document.getElementById('locked-badge');
+  const liveBadge=document.getElementById('live-badge');
+  if(locked){
+    btn.textContent='⏸ Locked';btn.classList.add('locked');
+    badge.style.display='block';liveBadge.style.display='none';
+    if(cameraStarted)cancelAnimationFrame(rafId);
+  }else{
+    btn.textContent='⏺ Lock';btn.classList.remove('locked');
+    badge.style.display='none';liveBadge.style.display=cameraStarted?'flex':'none';
+    if(cameraStarted)startAnalysis();
+  }
+}
+
+function setLens(btn,name){
+  document.querySelectorAll('#lens-row .pill-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  activeLens=name;
+  document.getElementById('lens-badge').textContent=name;
+}
+
+function takeSnapshot(){
+  const snap={
+    id:Date.now(),kelvin,gm,lux:Math.round(lux),ndStops,
+    lens:activeLens,time:new Date().toLocaleTimeString(),
+    date:new Date().toLocaleDateString(),note:'',thumb:null
+  };
+  const c=document.createElement('canvas');
+  c.width=120;c.height=80;
+  const ctx2=c.getContext('2d');
+  if(video.readyState>=2)ctx2.drawImage(video,0,0,120,80);
+  snap.thumb=c.toDataURL('image/jpeg',0.5);
+  pendingSnap=snap;
+  document.getElementById('modal-sub').textContent=`${kelvin.toLocaleString()}K · ${ndStopToName(ndStops)} · ${activeLens}`;
+  document.getElementById('note-input').value='';
+  document.getElementById('modal').classList.add('show');
+}
+
+function closeModal(){
+  document.getElementById('modal').classList.remove('show');
+  pendingSnap=null;
+}
+
+function saveSnapshot(){
+  if(!pendingSnap)return;
+  pendingSnap.note=document.getElementById('note-input').value;
+  snapshots=[pendingSnap,...snapshots].slice(0,20);
+  closeModal();
+  renderHistory();
+  updateCompareSelects();
+}
+
+function clearAll(){snapshots=[];renderHistory();updateCompareSelects();}
+
+function renderHistory(){
+  const list=document.getElementById('history-list');
+  document.getElementById('snap-count').textContent=snapshots.length;
+  if(!snapshots.length){
+    list.innerHTML='<div class="empty"><div class="eico">📷</div><p>No readings saved yet.<br>Use Capture to save a reading.</p></div>';
+    return;
+  }
+  list.innerHTML=snapshots.map(s=>{
+    const c=kelvinToRGB(s.kelvin);
+    const css=`rgb(${c.r},${c.g},${c.b})`;
+    return `<div class="snap-item">
+      ${s.thumb?`<img src="${s.thumb}" alt="" />`:''}
+      <div class="snap-meta">
+        <div style="display:flex;gap:6px;align-items:center">
+          <span class="color-dot" style="background:${css}"></span>
+          <span class="snap-k">${s.kelvin.toLocaleString()}K</span>
+          <span style="font-size:10px;color:var(--muted);margin-left:auto">${s.lens}</span>
+        </div>
+        <div class="snap-sub">
+          <span>ND ${s.ndStops.toFixed(1)} stops</span>
+          <span>${s.lux>999?(s.lux/1000).toFixed(1)+'k':s.lux} lux</span>
+        </div>
+        <div class="snap-time">${s.date} · ${s.time}</div>
+        ${s.note?`<div class="snap-note">"${s.note}"</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function updateCompareSelects(){
+  const opts='<option value="">— select —</option>'+snapshots.map(s=>`<option value="${s.id}">${s.kelvin.toLocaleString()}K · ${s.time}</option>`).join('');
+  document.getElementById('sel-a').innerHTML=opts;
+  document.getElementById('sel-b').innerHTML=opts;
+  updateCompare();
+}
+
+function updateCompare(){
+  const aId=parseInt(document.getElementById('sel-a').value);
+  const bId=parseInt(document.getElementById('sel-b').value);
+  const a=snapshots.find(s=>s.id===aId);
+  const b=snapshots.find(s=>s.id===bId);
+  const resultEl=document.getElementById('compare-result');
+  const emptyEl=document.getElementById('compare-empty');
+  if(!a||!b||a.id===b.id){resultEl.style.display='none';emptyEl.style.display='block';return;}
+  resultEl.style.display='block';emptyEl.style.display='none';
+  const cards=[a,b].map((s,idx)=>{
+    const c=kelvinToRGB(s.kelvin);
+    const css=`rgb(${c.r},${c.g},${c.b})`;
+    return `<div class="compare-card">
+      <div style="font-size:9px;color:var(--muted);margin-bottom:6px">SLOT ${idx===0?'A':'B'}</div>
+      ${s.thumb?`<img src="${s.thumb}" style="width:100%;height:44px;border-radius:6px;object-fit:cover;margin-bottom:8px" alt="" />`:''}
+      <div class="compare-swatch" style="background:${css}"></div>
+      <div class="compare-k">${s.kelvin.toLocaleString()}K</div>
+      <div class="compare-sub">ND ${s.ndStops.toFixed(1)} stops</div>
+      <div class="compare-sub">${s.lux>999?(s.lux/1000).toFixed(1)+'k':s.lux} lux</div>
+      <div class="compare-sub">${s.lens} · ${s.time}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('compare-cards').innerHTML=cards;
+  const deltas=[
+    {label:'Color Temp Δ',val:`${Math.abs(a.kelvin-b.kelvin).toLocaleString()}K ${a.kelvin>b.kelvin?'(A warmer)':'(B warmer)'}`},
+    {label:'ND Stops Δ',val:`${Math.abs(a.ndStops-b.ndStops).toFixed(1)} stops`},
+    {label:'Lux Δ',val:`${Math.abs(a.lux-b.lux).toLocaleString()} lux`},
+    {label:'G/M Δ',val:`${Math.abs(a.gm-b.gm)} units`},
+  ];
+  document.getElementById('delta-rows').innerHTML=deltas.map(d=>`<div class="delta-row"><span class="delta-label">${d.label}</span><span>${d.val}</span></div>`).join('');
+}
+
+function switchTab(name,btn){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-history').style.display=name==='history'?'block':'none';
+  document.getElementById('tab-compare').style.display=name==='compare'?'block':'none';
+}
+
+updateRefSlider();
+</script>
+</body>
+</html>
