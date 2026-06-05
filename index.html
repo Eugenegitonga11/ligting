@@ -323,22 +323,32 @@
     const smoothLum = Math.round(avg(lumBuffer));
     const smoothGM = parseFloat(avg(gmBuffer).toFixed(1));
 
-    // ND calculation based on luminance
-    // Target exposure = 18% grey = ~46 out of 255 = lum 18%
-    // ND stops = log2(current_lum / 18)
-    const ndStops = smoothLum > 1 ? Math.max(0, Math.log2(smoothLum / 18)) : 0;
-    const ndDensity = parseFloat((ndStops * 0.3).toFixed(1)); // density = stops * log10(2) ≈ stops * 0.3
-    const ndNumber = Math.pow(2, Math.round(ndStops)); // ND2, ND4, ND8...
-    const ev = parseFloat((Math.log2(lumRaw / 18 + 0.001)).toFixed(1));
+    // ND calculation using cinema 180° shutter rule baseline
+    // Standard cinema reference: ISO 800, T-Stop 2.8, 23.98fps, 180° shutter → shutter = 1/48s
+    // EV of that baseline = log2( 1/(t-stop²) * (1/shutter) * (ISO/100) )
+    //   = log2( (1/2.8²) * 48 * 8 ) ≈ log2(48.98) ≈ 5.6 EV  (scene luminance in EV100)
+    // We estimate scene EV from luminance: EV100 ≈ log2(lum_0_255 / 2.5)
+    const sceneLumLinear = lumRaw; // 0–255
+    const sceneEV = Math.log2(Math.max(sceneLumLinear, 1) / 2.5); // EV100 approx
+    const baselineEV = 5.6; // cinema reference EV (ISO800, T2.8, 1/48s)
+    const rawNDStops = Math.max(0, sceneEV - baselineEV);
+    // Round to nearest 1/3 stop for display realism
+    const ndStops = Math.round(rawNDStops * 3) / 3;
+    // ND number = 2^stops, density = stops * log10(2) ≈ stops * 0.301
+    // Real CineTemp only shows standard ND values: ND2(0.3)=1stop, ND4(0.6)=2stops, ND8(0.9)=3stops
+    const ndStopRounded = Math.round(ndStops); // nearest whole stop for ND label
+    const ndNumber = Math.pow(2, ndStopRounded);
+    const ndDensity = parseFloat((ndStopRounded * 0.3).toFixed(1));
+    const ev = parseFloat(sceneEV.toFixed(1));
 
-    lastCCT = smoothCCT; lastLum = smoothLum; lastGM = smoothGM; lastNDStop = parseFloat(ndStops.toFixed(1));
+    lastCCT = smoothCCT; lastLum = smoothLum; lastGM = smoothGM; lastNDStop = ndStops;
 
     // Update UI
     document.getElementById('cct-val').textContent = smoothCCT.toLocaleString();
     document.getElementById('gm-display').textContent = smoothGM >= 0 ? '+' + smoothGM.toFixed(1) : smoothGM.toFixed(1);
 
     // ND display matching real CineTemp: "ND 2 (0.6)"
-    if (ndStops < 0.3) {
+    if (ndStops < 0.5) {
       document.getElementById('nd-val').textContent = 'Clear';
       document.getElementById('stops-val').textContent = '—';
     } else {
@@ -426,8 +436,9 @@
     if (!stream) { alert('Start camera first.'); return; }
     const now = new Date();
     const ndStops = lastNDStop;
-    const ndDensity = parseFloat((ndStops * 0.3).toFixed(1));
-    const ndNumber = Math.pow(2, Math.round(ndStops));
+    const ndStopRounded = Math.round(ndStops);
+    const ndDensity = parseFloat((ndStopRounded * 0.3).toFixed(1));
+    const ndNumber = Math.pow(2, ndStopRounded);
     const shot = {
       id: Date.now(),
       cct: lastCCT,
